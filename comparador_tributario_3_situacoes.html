@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Comparador Tributário</title>
+<style>
+:root{--bg:#f3f6fb;--card:#fff;--ink:#172033;--muted:#64748b;--line:#e2e8f0;--blue:#2457d6;--bluebg:#edf2ff;--green:#087f5b}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.5 Inter,system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif}
+header{background:linear-gradient(120deg,#142b59,#2457d6);color:white;padding:30px 18px}header .wrap,main{max-width:1180px;margin:auto}h1{margin:0 0 5px;font-size:clamp(24px,4vw,34px)}header p{margin:0;color:#dbe6ff}
+main{padding:24px 18px 48px}.panel{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:20px;box-shadow:0 5px 20px #17203308;margin-bottom:18px}
+h2{font-size:19px;margin:0 0 15px}.selector{display:grid;grid-template-columns:minmax(230px,360px) 1fr;gap:16px;align-items:end}
+label{display:block;font-size:13px;font-weight:700;margin-bottom:6px}select,input{width:100%;padding:11px 12px;border:1px solid #cbd5e1;border-radius:9px;background:#fff;color:var(--ink);font:inherit}input:focus,select:focus{outline:3px solid #2457d622;border-color:var(--blue)}
+.hint{font-size:13px;color:var(--muted);padding-bottom:8px}.inputs{display:grid;grid-template-columns:repeat(auto-fit,minmax(205px,1fr));gap:14px}.field small{display:block;color:var(--muted);font-size:11px;margin-top:4px}
+.actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:16px}button{border:0;border-radius:9px;padding:11px 16px;font-weight:700;cursor:pointer}.primary{background:var(--blue);color:white}.secondary{background:#eef2f7;color:#263449}
+.pricebox{background:var(--bluebg);border:1px solid #cddaff;border-radius:12px;padding:16px;margin-bottom:18px}.pricebox small{color:#4b5e8d}.pricebox strong{display:block;font-size:30px;color:#193e9b}
+.compare{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:18px}.model{border:1px solid var(--line);border-radius:14px;overflow:hidden;background:white}.model h3{margin:0;padding:15px 18px;background:#f8fafc;font-size:17px}.model.new h3{background:var(--bluebg);color:#193e9b}.rows{padding:4px 18px 14px}
+.metric{display:flex;justify-content:space-between;gap:12px;padding:9px 0;border-bottom:1px solid #edf1f6}.metric:last-child{border:0}.metric span{color:var(--muted)}.metric strong{text-align:right;font-variant-numeric:tabular-nums}
+.highlight{background:#f0fdf8;border-radius:10px;padding:12px;margin:12px 0}.highlight span{display:block;color:var(--green);font-size:12px;font-weight:700}.highlight strong{font-size:25px;color:#06664a}
+.status,.note{font-size:12px;color:var(--muted);margin-top:12px}.tag{display:inline-block;background:#e8eefc;color:#23489f;border-radius:99px;padding:4px 9px;font-size:11px;font-weight:700;margin-left:8px}
+@media(max-width:720px){.compare{grid-template-columns:1fr}.selector{grid-template-columns:1fr}.panel{padding:16px}}
+</style></head>
+<body>
+<header><div class="wrap"><h1>Comparador Tributário</h1><p>Compare o modelo atual com o novo, mantendo a mesma margem de contribuição.</p></div></header>
+<main>
+<section class="panel">
+<h2>1. Escolha a situação tributária</h2>
+<div class="selector">
+<div><label for="situacao">Situação tributária</label><select id="situacao"><option value="tributado">Tributado</option><option value="isento">Isento</option><option value="st">Substituição Tributária (ST)</option></select></div>
+<div class="hint" id="descricao">Parâmetros e fórmulas correspondentes à aba Tributado da planilha.</div>
+</div>
+</section>
+<section class="panel">
+<h2>2. Campos editáveis <span class="tag" id="abaTag">Aba: Tributado</span></h2>
+<div class="inputs" id="campos"></div>
+<div class="actions"><button class="primary" id="calc">Atualizar simulação</button><button class="secondary" id="reset">Restaurar valores da aba</button></div>
+<div class="status" id="status" aria-live="polite">Os resultados são atualizados automaticamente ao alterar os campos.</div>
+</section>
+<section class="panel">
+<h2>3. Preço sugerido no modelo novo</h2>
+<div class="pricebox"><small>Preço calculado para preservar o percentual de contribuição do modelo atual</small><strong id="precoSugerido">—</strong><small id="margemAlvo">Margem de contribuição alvo: —</small></div>
+<h2>4. Comparativo dos resultados</h2>
+<div class="compare">
+<div class="model"><h3>Modelo Atual</h3><div class="rows" id="atual"></div></div>
+<div class="model new"><h3>Modelo Novo</h3><div class="rows" id="novo"></div></div>
+</div>
+<p class="note">Diretos Exclusivos</p>
+</section>
+</main>
+<script>
+const configs={
+tributado:{aba:'Tributado',desc:'Parâmetros e fórmulas correspondentes à aba Tributado da planilha.',fields:[
+['iva','% IVA / CBS',11.4],['icmsCompra','% ICMS na Compra',12],['icmsVenda','% ICMS na Venda',22],['pisCompra','% PIS/COFINS na Compra',9.25],['pisVenda','% PIS/COFINS na Venda',9.25],['reducao','% Redução ICMS',45.45],['fot','% FOT',2.33],['comissao','% Comissão',4],['precoVenda','Preço de Venda Atual (R$)',150,'money'],['custo','Preço de Custo (R$)',100,'money']]},
+isento:{aba:'Isento',desc:'Parâmetros da aba Isento. O cálculo de FOT mantém a referência fixa de 22% usada na fórmula original.',fields:[
+['iva','% IVA / CBS',11.4],['icmsCompra','% ICMS na Compra',0],['icmsVenda','% ICMS na Venda',0],['pisCompra','% PIS/COFINS na Compra',9.25],['pisVenda','% PIS/COFINS na Venda',9.25],['fot','% FOT',5.13],['comissao','% Comissão',2],['precoVenda','Preço de Venda Atual (R$)',150,'money'],['custo','Preço de Custo (R$)',100,'money']]},
+st:{aba:'Substituição Tributária',desc:'Parâmetros da aba Substituição Tributária, incluindo MVA e ICMS-ST.',fields:[
+['iva','% IVA / CBS',11.4],['icmsCompra','% ICMS na Compra',12],['icmsVenda','% ICMS na Venda',22],['pisCompra','% PIS/COFINS na Compra',9.25],['pisVenda','% PIS/COFINS na Venda',9.25],['reducao','% Redução ICMS',45.45],['fot','% FOT',5.37],['comissao','% Comissão',2],['mva','% MVA',30.59],['precoVenda','Preço de Venda Atual (R$)',140.91,'money'],['custo','Preço de Custo (R$)',100,'money']]}
+};
+const el=id=>document.getElementById(id), current=()=>configs[el('situacao').value];
+const money=v=>new Intl.NumberFormat('pt-BR',{style:'currency',currency:'BRL'}).format(Number.isFinite(v)?v:0);
+const pct=v=>(v*100).toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2})+'%';
+const val=id=>Number(el(id).value||0), rate=id=>val(id)/100;
+function renderFields(){
+ const key=el('situacao').value,cfg=current();
+ el('campos').innerHTML=cfg.fields.map(([id,label,def,type])=>`<div class="field"><label for="${id}">${label}</label><input id="${id}" type="number" step="${type==='money'?'0.01':'0.0001'}" value="${def}"><small>${type==='money'?'Informe o valor em reais':'Informe em percentual (%)'}</small></div>`).join('');
+ el('abaTag').textContent='Aba: '+cfg.aba;el('descricao').textContent=cfg.desc;
+ cfg.fields.forEach(([id])=>el(id).addEventListener('input',calculate));calculate();
+}
+function row(label,value){return `<div class="metric"><span>${label}</span><strong>${value}</strong></div>`}
+function show(model,price,items){return `<div class="highlight"><span>${model==='novo'?'PREÇO DE VENDA SUGERIDO':'PREÇO DE VENDA'}</span><strong>${money(price)}</strong></div>`+items.map(([k,v])=>row(k,typeof v==='string'?v:money(v))).join('')}
+function calculate(){
+ const cfg=current(), iva=rate('iva'), ic=rate('icmsCompra'), iv=rate('icmsVenda'), pc=rate('pisCompra'), pv=rate('pisVenda'), red=(el('situacao').value==='isento'?0:rate('reducao')), fot=rate('fot'), com=rate('comissao'), sale=val('precoVenda'), cost=val('custo'), st=el('situacao').value==='st', exempt=el('situacao').value==='isento';
+ if(!Number.isFinite(sale)||!Number.isFinite(cost)||sale<=0||cost<=0){el('status').textContent='Informe preço de venda e custo maiores que zero.';return}
+ const icmsRate=iv*(1-red), icmsBuy=cost*ic;
+ let costCap,commission,icmsSale,pisSale,fotValue,stValue=0,markup,margin,contribution,contributionPct,finalPrice;
+ if(!st){
+  costCap=cost-icmsBuy-((cost-icmsBuy)*pc);
+  commission=sale*com;icmsSale=sale*icmsRate;pisSale=(sale-icmsSale)*pv;
+  fotValue=exempt?((sale/(1-.22))*.22)*.1818:((sale*(1-icmsRate)/(1-iv)-sale)*.1818);
+  markup=sale/cost-1;margin=(sale-cost)/sale;
+  contribution=sale-costCap-icmsSale-fotValue-pisSale-commission;contributionPct=contribution/sale;finalPrice=sale;
+ }else{
+  const mva=rate('mva');
+  costCap=cost-icmsBuy-((cost-icmsBuy)*pc);
+  commission=sale*com;icmsSale=sale*icmsRate;pisSale=(sale-icmsSale)*pv;
+  stValue=(sale*(1+mva))*icmsRate-icmsSale;
+  fotValue=(((sale*(1-icmsRate)/(1-iv)-sale)+(sale*(1+mva)*(1-icmsRate)/(1-iv)-(sale*(1+mva))))*.1818);
+  markup=sale/cost-1;margin=(sale-cost)/sale;
+  contribution=sale-costCap-icmsSale-fotValue-pisSale-commission;contributionPct=contribution/sale;finalPrice=sale+stValue;
+ }
+ const icmsBuyNew=cost*ic;
+ const costWithIva=cost+((cost-icmsBuyNew)*(st?0.114:iva));
+ const costCapNew=costWithIva-icmsBuyNew-((cost-icmsBuyNew)*iva);
+ const target=contributionPct;
+ const denominator=1-com-icmsRate-((1-icmsRate)*iva)-fot-target;
+ if(denominator<=0){el('status').textContent='Não foi possível calcular o preço sugerido. Verifique alíquotas e margem.';return}
+ const newPrice=costCapNew/denominator;
+ const newCommission=newPrice*com,newIcmsSale=newPrice*icmsRate,newTaxSale=(newPrice-newIcmsSale)*iva;
+ let newFot,newST=0;
+ if(st){
+  const mva=rate('mva');
+  newST=(newPrice*(1+mva))*icmsRate-newIcmsSale;
+  newFot=(((newPrice*(1-icmsRate)/(1-iv)-newPrice)+(newPrice*(1+mva)*(1-icmsRate)/(1-iv)-(newPrice*(1+mva))))*.1818);
+ }else{
+  newFot=exempt?((newPrice/(1-.22))*.22)*.1818:((newPrice*(1-icmsRate)/(1-iv)-newPrice)*.1818);
+ }
+ const newContribution=newPrice-costCapNew-newCommission-newIcmsSale-newFot-newTaxSale;
+ const newContributionPct=newContribution/newPrice;
+ const newMarkup=newPrice/costWithIva-1,newMargin=(newPrice-costWithIva)/newPrice;
+ const currentItems=[
+  ['Preço de custo',cost],['Preço de custo capado',costCap],['Comissão',commission],['ICMS na venda',icmsSale],['ICMS na compra',icmsBuy],
+  [st?'PIS/COFINS na venda':'PIS/COFINS na venda',pisSale],
+  ...(st?[['ICMS-ST',stValue]]:[]),['FOT',fotValue],['Markup',pct(markup)],['Margem',pct(margin)],['Margem de contribuição',contribution],['% de contribuição',pct(contributionPct)],[st?'Preço final (+ ST)':'Preço final',finalPrice+(st?stValue:0)]
+ ];
+ const newItems=[
+  ['Preço de custo com IVA/CBS',costWithIva],['Preço de custo capado',costCapNew],['Comissão',newCommission],['ICMS na venda',newIcmsSale],['ICMS na compra',icmsBuyNew],
+  [st?'IVA na venda':'CBS na venda',newTaxSale],...(st?[['ICMS-ST',newST]]:[]),['FOT',newFot],['Markup',pct(newMarkup)],['Margem',pct(newMargin)],['Margem de contribuição',newContribution],['% de contribuição',pct(newContributionPct)],[st?'Preço final (+ ST + IVA)':'Preço final (com CBS)',newPrice+newTaxSale+(st?newST:0)]
+ ];
+ el('precoSugerido').textContent=money(newPrice);el('margemAlvo').textContent='Margem de contribuição alvo: '+pct(target);
+ el('atual').innerHTML=show('atual',sale,currentItems);el('novo').innerHTML=show('novo',newPrice,newItems);
+ el('status').textContent='Simulação atualizada para '+cfg.aba+'. A margem de contribuição do modelo novo busca igualar a do modelo atual.';
+}
+el('situacao').addEventListener('change',renderFields);
+el('calc').addEventListener('click',calculate);
+el('reset').addEventListener('click',renderFields);
+renderFields();
+</script></body></html>
