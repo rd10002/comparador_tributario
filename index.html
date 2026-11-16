@@ -13,6 +13,14 @@ label{display:block;font-size:13px;font-weight:700;margin-bottom:6px}select,inpu
 .hint{font-size:13px;color:var(--muted);padding-bottom:8px}.inputs{display:grid;grid-template-columns:repeat(auto-fit,minmax(205px,1fr));gap:14px}.field small{display:block;color:var(--muted);font-size:11px;margin-top:4px}
 .actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:16px}button{border:0;border-radius:9px;padding:11px 16px;font-weight:700;cursor:pointer}.primary{background:var(--blue);color:white}.secondary{background:#eef2f7;color:#263449}
 .pricebox{background:var(--bluebg);border:1px solid #cddaff;border-radius:12px;padding:16px;margin-bottom:18px}.pricebox small{color:#4b5e8d}.pricebox strong{display:block;font-size:30px;color:#193e9b}
+.delta-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px;margin:0 0 22px}
+.delta-card{border:1px solid var(--line);border-radius:12px;background:#fff;padding:15px 16px}
+.delta-card small{display:block;color:var(--muted);font-weight:650;font-size:12px}
+.delta-card strong{display:block;font-size:25px;margin:4px 0;font-variant-numeric:tabular-nums}
+.delta-card .detail{font-size:12px;color:var(--muted)}
+.delta-card.increase strong{color:#b45309}.delta-card.decrease strong{color:var(--green)}.delta-card.neutral strong{color:var(--ink)}
+@media(max-width:560px){.delta-grid{grid-template-columns:1fr}}
+
 .compare{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:18px}.model{border:1px solid var(--line);border-radius:14px;overflow:hidden;background:white}.model h3{margin:0;padding:15px 18px;background:#f8fafc;font-size:17px}.model.new h3{background:var(--bluebg);color:#193e9b}.rows{padding:4px 18px 14px}
 .metric{display:flex;justify-content:space-between;gap:12px;padding:9px 0;border-bottom:1px solid #edf1f6}.metric:last-child{border:0}.metric span{color:var(--muted)}.metric strong{text-align:right;font-variant-numeric:tabular-nums}
 .highlight{background:#f0fdf8;border-radius:10px;padding:12px;margin:12px 0}.highlight span{display:block;color:var(--green);font-size:12px;font-weight:700}.highlight strong{font-size:25px;color:#06664a}
@@ -38,6 +46,10 @@ label{display:block;font-size:13px;font-weight:700;margin-bottom:6px}select,inpu
 <section class="panel">
 <h2>3. Preço sugerido no modelo novo</h2>
 <div class="pricebox"><small>Preço calculado para preservar o percentual de contribuição do modelo atual</small><strong id="precoSugerido">—</strong><small id="margemAlvo">Margem de contribuição alvo: —</small></div>
+<div class="delta-grid" aria-live="polite">
+ <div class="delta-card neutral" id="cardVariacaoVenda"><small>Variação do preço de venda</small><strong id="variacaoVenda">—</strong><div class="detail" id="detalheVenda">Modelo novo comparado ao atual</div></div>
+ <div class="delta-card neutral" id="cardVariacaoFinal"><small>Variação do preço final</small><strong id="variacaoFinal">—</strong><div class="detail" id="detalheFinal">Modelo novo comparado ao atual</div></div>
+</div>
 <h2>4. Comparativo dos resultados</h2>
 <div class="compare">
 <div class="model"><h3>Modelo Atual</h3><div class="rows" id="atual"></div></div>
@@ -49,11 +61,11 @@ label{display:block;font-size:13px;font-weight:700;margin-bottom:6px}select,inpu
 <script>
 const configs={
 tributado:{aba:'Tributado',desc:'Parâmetros e fórmulas correspondentes à aba Tributado .',fields:[
-['iva','% IVA / CBS',11.4],['icmsCompra','% ICMS na Compra',12],['icmsVenda','% ICMS na Venda',22],['pisCompra','% PIS/COFINS na Compra',9.25],['pisVenda','% PIS/COFINS na Venda',9.25],['reducao','% Redução ICMS',45.45],['fot','% FOT',2.33],['comissao','% Comissão',4],['precoVenda','Preço de Venda Atual (R$)',150,'money'],['custo','Preço de Custo (R$)',100,'money']]},
+['iva','% IVA / CBS',11.4],['reducaoIva','% Redução IVA',0],['icmsCompra','% ICMS na Compra',12],['icmsVenda','% ICMS na Venda',22],['pisCompra','% PIS/COFINS na Compra',9.25],['pisVenda','% PIS/COFINS na Venda',9.25],['reducao','% Redução ICMS',45.45],['fot','% FOT',2.33],['comissao','% Comissão',4],['precoVenda','Preço de Venda Atual (R$)',150,'money'],['custo','Preço de Custo (R$)',100,'money']]},
 isento:{aba:'Isento',desc:'Parâmetros da aba Isento. ',fields:[
-['iva','% IVA / CBS',11.4],['icmsCompra','% ICMS na Compra',0],['icmsVenda','% ICMS na Venda',0],['pisCompra','% PIS/COFINS na Compra',9.25],['pisVenda','% PIS/COFINS na Venda',9.25],['fot','% FOT',5.13],['comissao','% Comissão',2],['precoVenda','Preço de Venda Atual (R$)',150,'money'],['custo','Preço de Custo (R$)',100,'money']]},
+['iva','% IVA / CBS',11.4],['reducaoIva','% Redução IVA',0],['icmsCompra','% ICMS na Compra',0],['icmsVenda','% ICMS na Venda',0],['pisCompra','% PIS/COFINS na Compra',9.25],['pisVenda','% PIS/COFINS na Venda',9.25],['fot','% FOT',5.13],['comissao','% Comissão',2],['precoVenda','Preço de Venda Atual (R$)',150,'money'],['custo','Preço de Custo (R$)',100,'money']]},
 st:{aba:'Substituição Tributária',desc:'Parâmetros da aba Substituição Tributária, incluindo MVA e ICMS-ST.',fields:[
-['iva','% IVA / CBS',11.4],['icmsCompra','% ICMS na Compra',12],['icmsVenda','% ICMS na Venda',22],['pisCompra','% PIS/COFINS na Compra',9.25],['pisVenda','% PIS/COFINS na Venda',9.25],['reducao','% Redução ICMS',45.45],['fot','% FOT',5.37],['comissao','% Comissão',2],['mva','% MVA',30.59],['precoVenda','Preço de Venda Atual (R$)',140.91,'money'],['custo','Preço de Custo (R$)',100,'money']]}
+['iva','% IVA / CBS',11.4],['reducaoIva','% Redução IVA',0],['icmsCompra','% ICMS na Compra',12],['icmsVenda','% ICMS na Venda',22],['pisCompra','% PIS/COFINS na Compra',9.25],['pisVenda','% PIS/COFINS na Venda',9.25],['reducao','% Redução ICMS',45.45],['fot','% FOT',5.37],['comissao','% Comissão',2],['mva','% MVA',30.59],['precoVenda','Preço de Venda Atual (R$)',140.91,'money'],['custo','Preço de Custo (R$)',100,'money']]}
 };
 const el=id=>document.getElementById(id), current=()=>configs[el('situacao').value];
 const money=v=>new Intl.NumberFormat('pt-BR',{style:'currency',currency:'BRL'}).format(Number.isFinite(v)?v:0);
@@ -68,7 +80,7 @@ function renderFields(){
 function row(label,value){return `<div class="metric"><span>${label}</span><strong>${value}</strong></div>`}
 function show(model,price,items){return `<div class="highlight"><span>${model==='novo'?'PREÇO DE VENDA SUGERIDO':'PREÇO DE VENDA'}</span><strong>${money(price)}</strong></div>`+items.map(([k,v])=>row(k,typeof v==='string'?v:money(v))).join('')}
 function calculate(){
- const cfg=current(), iva=rate('iva'), ic=rate('icmsCompra'), iv=rate('icmsVenda'), pc=rate('pisCompra'), pv=rate('pisVenda'), red=(el('situacao').value==='isento'?0:rate('reducao')), fot=rate('fot'), com=rate('comissao'), sale=val('precoVenda'), cost=val('custo'), st=el('situacao').value==='st', exempt=el('situacao').value==='isento';
+ const cfg=current(), iva=rate('iva'), reducaoIva=rate('reducaoIva'), ivaEfetivo=iva*(1-reducaoIva), ic=rate('icmsCompra'), iv=rate('icmsVenda'), pc=rate('pisCompra'), pv=rate('pisVenda'), red=(el('situacao').value==='isento'?0:rate('reducao')), fot=rate('fot'), com=rate('comissao'), sale=val('precoVenda'), cost=val('custo'), st=el('situacao').value==='st', exempt=el('situacao').value==='isento';
  if(!Number.isFinite(sale)||!Number.isFinite(cost)||sale<=0||cost<=0){el('status').textContent='Informe preço de venda e custo maiores que zero.';return}
  const icmsRate=iv*(1-red), icmsBuy=cost*ic;
  let costCap,commission,icmsSale,pisSale,fotValue,stValue=0,markup,margin,contribution,contributionPct,finalPrice;
@@ -88,13 +100,13 @@ function calculate(){
   contribution=sale-costCap-icmsSale-fotValue-pisSale-commission;contributionPct=contribution/sale;finalPrice=sale+stValue;
  }
  const icmsBuyNew=cost*ic;
- const costWithIva=cost+((cost-icmsBuyNew)*(st?0.114:iva));
- const costCapNew=costWithIva-icmsBuyNew-((cost-icmsBuyNew)*iva);
+ const costWithIva=cost+((cost-icmsBuyNew)*ivaEfetivo);
+ const costCapNew=costWithIva-icmsBuyNew-((cost-icmsBuyNew)*ivaEfetivo);
  const target=contributionPct;
- const denominator=1-com-icmsRate-((1-icmsRate)*iva)-fot-target;
+ const denominator=1-com-icmsRate-((1-icmsRate)*ivaEfetivo)-fot-target;
  if(denominator<=0){el('status').textContent='Não foi possível calcular o preço sugerido. Verifique alíquotas e margem.';return}
  const newPrice=costCapNew/denominator;
- const newCommission=newPrice*com,newIcmsSale=newPrice*icmsRate,newTaxSale=(newPrice-newIcmsSale)*iva;
+ const newCommission=newPrice*com,newIcmsSale=newPrice*icmsRate,newTaxSale=(newPrice-newIcmsSale)*ivaEfetivo;
  let newFot,newST=0;
  if(st){
   const mva=rate('mva');
@@ -109,13 +121,25 @@ function calculate(){
  const currentItems=[
   ['Preço de custo',cost],['Preço de custo capado',costCap],['Comissão',commission],['ICMS na venda',icmsSale],['ICMS na compra',icmsBuy],
   [st?'PIS/COFINS na venda':'PIS/COFINS na venda',pisSale],
-  ...(st?[['ICMS-ST',stValue]]:[]),['FOT',fotValue],['Markup',pct(markup)],['Margem',pct(margin)],['Margem de contribuição',contribution],['% de contribuição',pct(contributionPct)],[st?'Preço final (+ ST)':'Preço final',finalPrice+(st?stValue:0)]
+  ...(st?[['ICMS-ST',stValue]]:[]),['FOT',fotValue],['Markup',pct(markup)],['Margem',pct(margin)],['Margem de contribuição',contribution],['% de contribuição',pct(contributionPct)],[st?'Preço final (+ ST)':'Preço final',finalPrice]
  ];
  const newItems=[
   ['Preço de custo com IVA/CBS',costWithIva],['Preço de custo capado',costCapNew],['Comissão',newCommission],['ICMS na venda',newIcmsSale],['ICMS na compra',icmsBuyNew],
   [st?'IVA na venda':'CBS na venda',newTaxSale],...(st?[['ICMS-ST',newST]]:[]),['FOT',newFot],['Markup',pct(newMarkup)],['Margem',pct(newMargin)],['Margem de contribuição',newContribution],['% de contribuição',pct(newContributionPct)],[st?'Preço final (+ ST + IVA)':'Preço final (com CBS)',newPrice+newTaxSale+(st?newST:0)]
  ];
+ const currentFinalPrice=finalPrice;
+ const newFinalPrice=newPrice+newTaxSale+(st?newST:0);
+ function updateDelta(cardId,valueId,detailId,newValue,oldValue){
+  const variation=newValue/oldValue-1, card=el(cardId);
+  const kind=variation>0.0000001?'increase':variation< -0.0000001?'decrease':'neutral';
+  card.className='delta-card '+kind;
+  const label=kind==='increase'?'Aumento':kind==='decrease'?'Redução':'Sem alteração';
+  el(valueId).textContent=(variation>0?'+':'')+pct(variation)+' · '+label;
+  el(detailId).textContent='Atual: '+money(oldValue)+' | Novo: '+money(newValue);
+ }
  el('precoSugerido').textContent=money(newPrice);el('margemAlvo').textContent='Margem de contribuição alvo: '+pct(target);
+ updateDelta('cardVariacaoVenda','variacaoVenda','detalheVenda',newPrice,sale);
+ updateDelta('cardVariacaoFinal','variacaoFinal','detalheFinal',newFinalPrice,currentFinalPrice);
  el('atual').innerHTML=show('atual',sale,currentItems);el('novo').innerHTML=show('novo',newPrice,newItems);
  el('status').textContent='Simulação atualizada para '+cfg.aba+'. A margem de contribuição do modelo novo busca igualar a do modelo atual.';
 }
