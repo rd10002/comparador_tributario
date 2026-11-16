@@ -2,7 +2,7 @@
 <html lang="pt-BR">
 <head>
 <meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Comparador Tributário</title>
+<title>Comparador de Preço Reforma Tributária</title>
 <style>
 :root{--bg:#f3f6fb;--card:#fff;--ink:#172033;--muted:#64748b;--line:#e2e8f0;--blue:#2457d6;--bluebg:#edf2ff;--green:#087f5b}
 *{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.5 Inter,system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif}
@@ -20,6 +20,7 @@ label{display:block;font-size:13px;font-weight:700;margin-bottom:6px}select,inpu
 .delta-card .detail{font-size:12px;color:var(--muted)}
 .delta-card.increase strong{color:#b45309}.delta-card.decrease strong{color:var(--green)}.delta-card.neutral strong{color:var(--ink)}
 @media(max-width:560px){.delta-grid{grid-template-columns:1fr}}
+
 .compare{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:18px}.model{border:1px solid var(--line);border-radius:14px;overflow:hidden;background:white}.model h3{margin:0;padding:15px 18px;background:#f8fafc;font-size:17px}.model.new h3{background:var(--bluebg);color:#193e9b}.rows{padding:4px 18px 14px}
 .metric{display:flex;justify-content:space-between;gap:12px;padding:9px 0;border-bottom:1px solid #edf1f6}.metric:last-child{border:0}.metric span{color:var(--muted)}.metric strong{text-align:right;font-variant-numeric:tabular-nums}
 .highlight{background:#f0fdf8;border-radius:10px;padding:12px;margin:12px 0}.highlight span{display:block;color:var(--green);font-size:12px;font-weight:700}.highlight strong{font-size:25px;color:#06664a}
@@ -27,7 +28,7 @@ label{display:block;font-size:13px;font-weight:700;margin-bottom:6px}select,inpu
 @media(max-width:720px){.compare{grid-template-columns:1fr}.selector{grid-template-columns:1fr}.panel{padding:16px}}
 </style></head>
 <body>
-<header><div class="wrap"><h1>Comparador de Preço Reforma Trbutaria</h1><p>Compare o modelo atual com o novo, mantendo a mesma margem de contribuição.</p></div></header>
+<header><div class="wrap"><h1>Comparador de Preço Reforma Tributária</h1><p>Compare o modelo atual com o novo, mantendo a mesma margem de contribuição.</p></div></header>
 <main>
 <section class="panel">
 <h2>1. Escolha a situação tributária</h2>
@@ -38,6 +39,14 @@ label{display:block;font-size:13px;font-weight:700;margin-bottom:6px}select,inpu
 </section>
 <section class="panel">
 <h2>2. Campos editáveis <span class="tag" id="abaTag">Aba: Tributado</span></h2>
+<div class="field" style="max-width:460px;margin-bottom:16px">
+<label for="custoNovoModo">Custo utilizado no Modelo Novo</label>
+<select id="custoNovoModo">
+<option value="digitado">Usar o custo digitado</option>
+<option value="semPis">Calcular custo sem PIS/COFINS da compra</option>
+</select>
+<small>Na segunda opção, o PIS/COFINS embutido no custo será retirado pela fórmula informada. O Modelo Atual continuará usando o custo original digitado.</small>
+</div>
 <div class="inputs" id="campos"></div>
 <div class="actions"><button class="primary" id="calc">Atualizar simulação</button><button class="secondary" id="reset">Restaurar valores da aba</button></div>
 <div class="status" id="status" aria-live="polite">Os resultados são atualizados automaticamente ao alterar os campos.</div>
@@ -54,7 +63,7 @@ label{display:block;font-size:13px;font-weight:700;margin-bottom:6px}select,inpu
 <div class="model"><h3>Modelo Atual</h3><div class="rows" id="atual"></div></div>
 <div class="model new"><h3>Modelo Novo</h3><div class="rows" id="novo"></div></div>
 </div>
-<p class="note">Diretos Exclusivos Rodrigo Egidio de Souza</p>
+<p class="note">Direitos Exclusivos Rodrigo Egidio de Souza</p>
 </section>
 </main>
 <script>
@@ -98,11 +107,14 @@ function calculate(){
   markup=sale/cost-1;margin=(sale-cost)/sale;
   contribution=sale-costCap-icmsSale-fotValue-pisSale-commission;contributionPct=contribution/sale;finalPrice=sale+stValue;
  }
- const icmsBuyNew=cost*ic;
- const costWithIva=cost+((cost-icmsBuyNew)*ivaEfetivo);
- const costCapNew=costWithIva-icmsBuyNew-((cost-icmsBuyNew)*ivaEfetivo);
+ const custoNovoModo=el('custoNovoModo').value;
+ const costBaseNew=custoNovoModo==='semPis'
+  ? cost-((cost-(cost*ic))*pc)
+  : cost;
+ const icmsBuyNew=costBaseNew*ic;
+ const costWithIva=costBaseNew+((costBaseNew-icmsBuyNew)*ivaEfetivo);
+ const costCapNew=costWithIva-icmsBuyNew-((costBaseNew-icmsBuyNew)*ivaEfetivo);
  const target=contributionPct;
- // O FOT na equação do preço novo é a participação do FOT atual sobre o preço de venda atual.
  const fotSobreVendaAtual=fotValue/sale;
  const denominator=1-com-icmsRate-((1-icmsRate)*ivaEfetivo)-fotSobreVendaAtual-target;
  if(denominator<=0){el('status').textContent='Não foi possível calcular o preço sugerido. Verifique alíquotas e margem.';return}
@@ -142,10 +154,11 @@ function calculate(){
  updateDelta('cardVariacaoVenda','variacaoVenda','detalheVenda',newPrice,sale);
  updateDelta('cardVariacaoFinal','variacaoFinal','detalheFinal',newFinalPrice,currentFinalPrice);
  el('atual').innerHTML=show('atual',sale,currentItems);el('novo').innerHTML=show('novo',newPrice,newItems);
- el('status').textContent='Simulação atualizada para '+cfg.aba+'. A margem de contribuição do modelo novo busca igualar a do modelo atual.';
+ el('status').textContent='Simulação atualizada para '+cfg.aba+'. Modelo Novo utilizando '+(custoNovoModo==='semPis'?'custo sem PIS/COFINS da compra':'custo digitado')+'. A margem de contribuição busca igualar a do Modelo Atual.';
 }
 el('situacao').addEventListener('change',renderFields);
 el('calc').addEventListener('click',calculate);
 el('reset').addEventListener('click',renderFields);
+el('custoNovoModo').addEventListener('change',calculate);
 renderFields();
 </script></body></html>
