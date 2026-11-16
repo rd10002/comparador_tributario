@@ -20,7 +20,6 @@ label{display:block;font-size:13px;font-weight:700;margin-bottom:6px}select,inpu
 .delta-card .detail{font-size:12px;color:var(--muted)}
 .delta-card.increase strong{color:#b45309}.delta-card.decrease strong{color:var(--green)}.delta-card.neutral strong{color:var(--ink)}
 @media(max-width:560px){.delta-grid{grid-template-columns:1fr}}
-
 .compare{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:18px}.model{border:1px solid var(--line);border-radius:14px;overflow:hidden;background:white}.model h3{margin:0;padding:15px 18px;background:#f8fafc;font-size:17px}.model.new h3{background:var(--bluebg);color:#193e9b}.rows{padding:4px 18px 14px}
 .metric{display:flex;justify-content:space-between;gap:12px;padding:9px 0;border-bottom:1px solid #edf1f6}.metric:last-child{border:0}.metric span{color:var(--muted)}.metric strong{text-align:right;font-variant-numeric:tabular-nums}
 .highlight{background:#f0fdf8;border-radius:10px;padding:12px;margin:12px 0}.highlight span{display:block;color:var(--green);font-size:12px;font-weight:700}.highlight strong{font-size:25px;color:#06664a}
@@ -28,7 +27,7 @@ label{display:block;font-size:13px;font-weight:700;margin-bottom:6px}select,inpu
 @media(max-width:720px){.compare{grid-template-columns:1fr}.selector{grid-template-columns:1fr}.panel{padding:16px}}
 </style></head>
 <body>
-<header><div class="wrap"><h1>Comparador Tributário</h1><p>Compare o modelo atual com o novo, mantendo a mesma margem de contribuição.</p></div></header>
+<header><div class="wrap"><h1>Comparador de Preço Reforma Trbutaria</h1><p>Compare o modelo atual com o novo, mantendo a mesma margem de contribuição.</p></div></header>
 <main>
 <section class="panel">
 <h2>1. Escolha a situação tributária</h2>
@@ -55,17 +54,17 @@ label{display:block;font-size:13px;font-weight:700;margin-bottom:6px}select,inpu
 <div class="model"><h3>Modelo Atual</h3><div class="rows" id="atual"></div></div>
 <div class="model new"><h3>Modelo Novo</h3><div class="rows" id="novo"></div></div>
 </div>
-<p class="note">Diretos Exclusivos</p>
+<p class="note">Diretos Exclusivos Rodrigo Egidio de Souza</p>
 </section>
 </main>
 <script>
 const configs={
 tributado:{aba:'Tributado',desc:'Parâmetros e fórmulas correspondentes à aba Tributado .',fields:[
-['iva','% IVA / CBS',11.4],['reducaoIva','% Redução IVA',0],['icmsCompra','% ICMS na Compra',12],['icmsVenda','% ICMS na Venda',22],['pisCompra','% PIS/COFINS na Compra',9.25],['pisVenda','% PIS/COFINS na Venda',9.25],['reducao','% Redução ICMS',45.45],['fot','% FOT',2.33],['comissao','% Comissão',4],['precoVenda','Preço de Venda Atual (R$)',150,'money'],['custo','Preço de Custo (R$)',100,'money']]},
+['iva','% IVA / CBS',11.4],['reducaoIva','% Redução IVA',0],['icmsCompra','% ICMS na Compra',12],['icmsVenda','% ICMS na Venda',22],['pisCompra','% PIS/COFINS na Compra',9.25],['pisVenda','% PIS/COFINS na Venda',9.25],['reducao','% Redução ICMS',45.45],['fot','% FOT',18.18],['comissao','% Comissão',4],['precoVenda','Preço de Venda Atual (R$)',150,'money'],['custo','Preço de Custo (R$)',100,'money']]},
 isento:{aba:'Isento',desc:'Parâmetros da aba Isento. ',fields:[
-['iva','% IVA / CBS',11.4],['reducaoIva','% Redução IVA',0],['icmsCompra','% ICMS na Compra',0],['icmsVenda','% ICMS na Venda',0],['pisCompra','% PIS/COFINS na Compra',9.25],['pisVenda','% PIS/COFINS na Venda',9.25],['fot','% FOT',5.13],['comissao','% Comissão',2],['precoVenda','Preço de Venda Atual (R$)',150,'money'],['custo','Preço de Custo (R$)',100,'money']]},
+['iva','% IVA / CBS',11.4],['reducaoIva','% Redução IVA',0],['icmsCompra','% ICMS na Compra',0],['icmsVenda','% ICMS na Venda',0],['pisCompra','% PIS/COFINS na Compra',9.25],['pisVenda','% PIS/COFINS na Venda',9.25],['fot','% FOT',18.18],['comissao','% Comissão',2],['precoVenda','Preço de Venda Atual (R$)',150,'money'],['custo','Preço de Custo (R$)',100,'money']]},
 st:{aba:'Substituição Tributária',desc:'Parâmetros da aba Substituição Tributária, incluindo MVA e ICMS-ST.',fields:[
-['iva','% IVA / CBS',11.4],['reducaoIva','% Redução IVA',0],['icmsCompra','% ICMS na Compra',12],['icmsVenda','% ICMS na Venda',22],['pisCompra','% PIS/COFINS na Compra',9.25],['pisVenda','% PIS/COFINS na Venda',9.25],['reducao','% Redução ICMS',45.45],['fot','% FOT',5.37],['comissao','% Comissão',2],['mva','% MVA',30.59],['precoVenda','Preço de Venda Atual (R$)',140.91,'money'],['custo','Preço de Custo (R$)',100,'money']]}
+['iva','% IVA / CBS',11.4],['reducaoIva','% Redução IVA',0],['icmsCompra','% ICMS na Compra',12],['icmsVenda','% ICMS na Venda',22],['pisCompra','% PIS/COFINS na Compra',9.25],['pisVenda','% PIS/COFINS na Venda',9.25],['reducao','% Redução ICMS',45.45],['fot','% FOT',18.18],['comissao','% Comissão',2],['mva','% MVA',30.59],['precoVenda','Preço de Venda Atual (R$)',140.91,'money'],['custo','Preço de Custo (R$)',100,'money']]}
 };
 const el=id=>document.getElementById(id), current=()=>configs[el('situacao').value];
 const money=v=>new Intl.NumberFormat('pt-BR',{style:'currency',currency:'BRL'}).format(Number.isFinite(v)?v:0);
@@ -87,7 +86,7 @@ function calculate(){
  if(!st){
   costCap=cost-icmsBuy-((cost-icmsBuy)*pc);
   commission=sale*com;icmsSale=sale*icmsRate;pisSale=(sale-icmsSale)*pv;
-  fotValue=exempt?((sale/(1-.22))*.22)*.1818:((sale*(1-icmsRate)/(1-iv)-sale)*.1818);
+  fotValue=exempt?((sale/(1-.22))*.22)*fot:((sale*(1-icmsRate)/(1-iv)-sale)*fot);
   markup=sale/cost-1;margin=(sale-cost)/sale;
   contribution=sale-costCap-icmsSale-fotValue-pisSale-commission;contributionPct=contribution/sale;finalPrice=sale;
  }else{
@@ -95,7 +94,7 @@ function calculate(){
   costCap=cost-icmsBuy-((cost-icmsBuy)*pc);
   commission=sale*com;icmsSale=sale*icmsRate;pisSale=(sale-icmsSale)*pv;
   stValue=(sale*(1+mva))*icmsRate-icmsSale;
-  fotValue=(((sale*(1-icmsRate)/(1-iv)-sale)+(sale*(1+mva)*(1-icmsRate)/(1-iv)-(sale*(1+mva))))*.1818);
+  fotValue=(((sale*(1-icmsRate)/(1-iv)-sale)+(sale*(1+mva)*(1-icmsRate)/(1-iv)-(sale*(1+mva))))*fot);
   markup=sale/cost-1;margin=(sale-cost)/sale;
   contribution=sale-costCap-icmsSale-fotValue-pisSale-commission;contributionPct=contribution/sale;finalPrice=sale+stValue;
  }
@@ -103,7 +102,9 @@ function calculate(){
  const costWithIva=cost+((cost-icmsBuyNew)*ivaEfetivo);
  const costCapNew=costWithIva-icmsBuyNew-((cost-icmsBuyNew)*ivaEfetivo);
  const target=contributionPct;
- const denominator=1-com-icmsRate-((1-icmsRate)*ivaEfetivo)-fot-target;
+ // O FOT na equação do preço novo é a participação do FOT atual sobre o preço de venda atual.
+ const fotSobreVendaAtual=fotValue/sale;
+ const denominator=1-com-icmsRate-((1-icmsRate)*ivaEfetivo)-fotSobreVendaAtual-target;
  if(denominator<=0){el('status').textContent='Não foi possível calcular o preço sugerido. Verifique alíquotas e margem.';return}
  const newPrice=costCapNew/denominator;
  const newCommission=newPrice*com,newIcmsSale=newPrice*icmsRate,newTaxSale=(newPrice-newIcmsSale)*ivaEfetivo;
@@ -111,9 +112,9 @@ function calculate(){
  if(st){
   const mva=rate('mva');
   newST=(newPrice*(1+mva))*icmsRate-newIcmsSale;
-  newFot=(((newPrice*(1-icmsRate)/(1-iv)-newPrice)+(newPrice*(1+mva)*(1-icmsRate)/(1-iv)-(newPrice*(1+mva))))*.1818);
+  newFot=(((newPrice*(1-icmsRate)/(1-iv)-newPrice)+(newPrice*(1+mva)*(1-icmsRate)/(1-iv)-(newPrice*(1+mva))))*fot);
  }else{
-  newFot=exempt?((newPrice/(1-.22))*.22)*.1818:((newPrice*(1-icmsRate)/(1-iv)-newPrice)*.1818);
+  newFot=exempt?((newPrice/(1-.22))*.22)*fot:((newPrice*(1-icmsRate)/(1-iv)-newPrice)*fot);
  }
  const newContribution=newPrice-costCapNew-newCommission-newIcmsSale-newFot-newTaxSale;
  const newContributionPct=newContribution/newPrice;
