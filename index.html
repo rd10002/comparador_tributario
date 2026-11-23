@@ -141,7 +141,13 @@ function calculate(){
  // O IVA é destacado como tributo do novo modelo; sua parcela é compensada
  // no total da operação e não deve reduzir novamente a margem-alvo.
  // A mesma lógica de preservação da margem vale para as opções Sim e Não.
- const denominator=(1-icmsRate)-com-fotSobreVendaAtual-target;
+ // Margem do Modelo Novo = Preço - custo capado - comissão - ICMS - FOT - IVA.
+ // Todos os itens são proporcionais ao preço, exceto o custo capado:
+ //   ICMS = P × alíquota (Não) ou P × alíquota × (1 + IVA) (Sim, por dentro)
+ //   IVA  = P × (1 − alíquota ICMS) × IVA efetivo
+ const icmsRatioNew=incluirCbsIbsNoIcms ? icmsRate*(1+ivaEfetivo) : icmsRate;
+ const ivaRatioNew=(1-icmsRate)*ivaEfetivo;
+ const denominator=1-icmsRatioNew-ivaRatioNew-com-fotSobreVendaAtual-target;
  if(denominator<=0){el('status').textContent='Não foi possível calcular o preço sugerido. Verifique alíquotas e margem.';return}
  const newPrice=costCapNew/denominator;
  const newCommission=newPrice*com;
@@ -161,9 +167,11 @@ function calculate(){
  }else{
   newFot=exempt?((newPrice/(1-.22))*.22)*fot:((newPrice*(1-icmsRate)/(1-iv)-newPrice)*fot);
  }
- const newContribution=newInvoiceTotal-costCapNew-newCommission-newIcmsSale-newFot-newTaxSale;
+ const newContribution=newPrice-costCapNew-newCommission-newIcmsSale-newFot-newTaxSale;
  const newContributionPct=newContribution/newPrice;
  const newMarkup=newPrice/costWithIva-1,newMargin=(newPrice-costWithIva)/newPrice;
+ // Preço final único: usado tanto na lista do Modelo Novo quanto no card de variação.
+ const newFinalPrice=newPrice+newTaxSale+(st?newST:0);
  const currentItems=[
   ['Preço de custo',cost],['Preço de custo capado',costCap],['Comissão',commission],['ICMS na venda',icmsSale],['ICMS na compra',icmsBuy],
   [st?'PIS/COFINS na venda':'PIS/COFINS na venda',pisSale],
@@ -171,10 +179,9 @@ function calculate(){
  ];
  const newItems=[
   ['Preço de custo com IVA',costWithIva],['Preço de custo capado',costCapNew],['Comissão',newCommission],['ICMS na venda',newIcmsSale],['ICMS na compra',icmsBuyNew],
-  [st?'IVA na venda':'IVA na venda',newTaxSale],...(st?[['ICMS-ST',newST]]:[]),['FOT',newFot],['Markup',pct(newMarkup)],['Margem',pct(newMargin)],['Margem de contribuição',newContribution],['% de contribuição',pct(newContributionPct)],[st?'Preço final (+ ST + IVA)':'Preço final (com IVA)',newPrice+newTaxSale+(st?newST:0)]
+  [st?'IVA na venda':'IVA na venda',newTaxSale],...(st?[['ICMS-ST',newST]]:[]),['FOT',newFot],['Markup',pct(newMarkup)],['Margem',pct(newMargin)],['Margem de contribuição',newContribution],['% de contribuição',pct(newContributionPct)],[st?'Preço final (+ ST + IVA)':'Preço final (com IVA)',newFinalPrice]
  ];
  const currentFinalPrice=finalPrice;
- const newFinalPrice=newInvoiceTotal+(st?newST:0);
  function updateDelta(cardId,valueId,detailId,newValue,oldValue){
   const variation=newValue/oldValue-1, card=el(cardId);
   const kind=variation>0.0000001?'increase':variation< -0.0000001?'decrease':'neutral';
