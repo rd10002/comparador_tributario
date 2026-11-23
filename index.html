@@ -39,13 +39,23 @@ label{display:block;font-size:13px;font-weight:700;margin-bottom:6px}select,inpu
 </section>
 <section class="panel">
 <h2>2. Campos editáveis <span class="tag" id="abaTag">Aba: Tributado</span></h2>
-<div class="field" style="max-width:460px;margin-bottom:16px">
+<div class="inputs" style="margin-bottom:16px">
+<div class="field">
 <label for="custoNovoModo">Custo utilizado no Modelo Novo</label>
 <select id="custoNovoModo">
 <option value="digitado">Usar o custo digitado</option>
 <option value="semPis">Calcular custo sem PIS/COFINS da compra</option>
 </select>
 <small>Na segunda opção, o PIS/COFINS embutido no custo será retirado pela fórmula informada. O Modelo Atual continuará usando o custo original digitado.</small>
+</div>
+<div class="field">
+<label for="cbsIbsBaseIcms">CBS/IBS compõe a base de cálculo do ICMS na venda?</label>
+<select id="cbsIbsBaseIcms">
+<option value="nao">Não — manter cálculo atual</option>
+<option value="sim">Sim — incluir CBS/IBS na base do ICMS</option>
+</select>
+<small>“Sim” aplica o cálculo por dentro do ICMS sobre a base líquida acrescida da CBS/IBS. A CBS/IBS continua sendo calculada sem incluir o ICMS na sua própria base.</small>
+</div>
 </div>
 <div class="inputs" id="campos"></div>
 <div class="actions"><button class="primary" id="calc">Atualizar simulação</button><button class="secondary" id="reset">Restaurar valores da aba</button></div>
@@ -58,11 +68,17 @@ label{display:block;font-size:13px;font-weight:700;margin-bottom:6px}select,inpu
  <div class="delta-card neutral" id="cardVariacaoVenda"><small>Variação do preço de venda</small><strong id="variacaoVenda">—</strong><div class="detail" id="detalheVenda">Modelo novo comparado ao atual</div></div>
  <div class="delta-card neutral" id="cardVariacaoFinal"><small>Variação do preço final</small><strong id="variacaoFinal">—</strong><div class="detail" id="detalheFinal">Modelo novo comparado ao atual</div></div>
 </div>
+<section class="panel" id="detalheCalculoCbsIbs" hidden>
+<h2>Como foi calculada a base do ICMS com CBS/IBS</h2>
+<p class="note">Demonstração dinâmica usando o preço sugerido, as alíquotas e a redução de ICMS informados acima.</p>
+<div class="rows" id="passosCalculoCbsIbs"></div>
+</section>
 <h2>4. Comparativo dos resultados</h2>
 <div class="compare">
 <div class="model"><h3>Modelo Atual</h3><div class="rows" id="atual"></div></div>
 <div class="model new"><h3>Modelo Novo</h3><div class="rows" id="novo"></div></div>
 </div>
+<p class="note" id="notaBaseIcms">A opção de inclusão da CBS/IBS na base do ICMS afeta somente o Modelo Novo.</p>
 <p class="note">Direitos Exclusivos Rodrigo Egidio de Souza</p>
 </section>
 </main>
@@ -108,6 +124,7 @@ function calculate(){
   contribution=sale-costCap-icmsSale-fotValue-pisSale-commission;contributionPct=contribution/sale;finalPrice=sale+stValue;
  }
  const custoNovoModo=el('custoNovoModo').value;
+ const incluirCbsIbsNoIcms=el('cbsIbsBaseIcms').value==='sim';
  const costBaseNew=custoNovoModo==='semPis'
   ? cost-((cost-(cost*ic))*pc)
   : cost;
@@ -116,10 +133,23 @@ function calculate(){
  const costCapNew=costWithIva-icmsBuyNew-((costBaseNew-icmsBuyNew)*ivaEfetivo);
  const target=contributionPct;
  const fotSobreVendaAtual=fotValue/sale;
- const denominator=1-com-icmsRate-((1-icmsRate)*ivaEfetivo)-fotSobreVendaAtual-target;
+ // "Não": preserva a fórmula original.
+ // "Sim": CBS/IBS incide sobre a base sem ICMS; depois o ICMS é recalculado
+ // por dentro sobre a base líquida acrescida de CBS/IBS.
+ const denominator=incluirCbsIbsNoIcms
+  ? (1-icmsRate)-com-fotSobreVendaAtual-target
+  : 1-com-icmsRate-((1-icmsRate)*ivaEfetivo)-fotSobreVendaAtual-target;
  if(denominator<=0){el('status').textContent='Não foi possível calcular o preço sugerido. Verifique alíquotas e margem.';return}
  const newPrice=costCapNew/denominator;
- const newCommission=newPrice*com,newIcmsSale=newPrice*icmsRate,newTaxSale=(newPrice-newIcmsSale)*ivaEfetivo;
+ const newCommission=newPrice*com;
+ const baseSemIcmsNova=newPrice*(1-icmsRate);
+ const newTaxSale=baseSemIcmsNova*ivaEfetivo;
+ const newIcmsSale=incluirCbsIbsNoIcms
+  ? ((baseSemIcmsNova+newTaxSale)/(1-icmsRate))*icmsRate
+  : newPrice*icmsRate;
+ const newInvoiceTotal=incluirCbsIbsNoIcms
+  ? baseSemIcmsNova+newTaxSale+newIcmsSale
+  : newPrice+newTaxSale;
  let newFot,newST=0;
  if(st){
   const mva=rate('mva');
@@ -128,7 +158,7 @@ function calculate(){
  }else{
   newFot=exempt?((newPrice/(1-.22))*.22)*fot:((newPrice*(1-icmsRate)/(1-iv)-newPrice)*fot);
  }
- const newContribution=newPrice-costCapNew-newCommission-newIcmsSale-newFot-newTaxSale;
+ const newContribution=newInvoiceTotal-costCapNew-newCommission-newIcmsSale-newFot-newTaxSale;
  const newContributionPct=newContribution/newPrice;
  const newMarkup=newPrice/costWithIva-1,newMargin=(newPrice-costWithIva)/newPrice;
  const currentItems=[
@@ -141,7 +171,7 @@ function calculate(){
   [st?'IVA na venda':'CBS na venda',newTaxSale],...(st?[['ICMS-ST',newST]]:[]),['FOT',newFot],['Markup',pct(newMarkup)],['Margem',pct(newMargin)],['Margem de contribuição',newContribution],['% de contribuição',pct(newContributionPct)],[st?'Preço final (+ ST + IVA)':'Preço final (com CBS)',newPrice+newTaxSale+(st?newST:0)]
  ];
  const currentFinalPrice=finalPrice;
- const newFinalPrice=newPrice+newTaxSale+(st?newST:0);
+ const newFinalPrice=newInvoiceTotal+(st?newST:0);
  function updateDelta(cardId,valueId,detailId,newValue,oldValue){
   const variation=newValue/oldValue-1, card=el(cardId);
   const kind=variation>0.0000001?'increase':variation< -0.0000001?'decrease':'neutral';
@@ -154,11 +184,30 @@ function calculate(){
  updateDelta('cardVariacaoVenda','variacaoVenda','detalheVenda',newPrice,sale);
  updateDelta('cardVariacaoFinal','variacaoFinal','detalheFinal',newFinalPrice,currentFinalPrice);
  el('atual').innerHTML=show('atual',sale,currentItems);el('novo').innerHTML=show('novo',newPrice,newItems);
- el('status').textContent='Simulação atualizada para '+cfg.aba+'. Modelo Novo utilizando '+(custoNovoModo==='semPis'?'custo sem PIS/COFINS da compra':'custo digitado')+'. A margem de contribuição busca igualar a do Modelo Atual.';
+ const detalhe=el('detalheCalculoCbsIbs');
+ detalhe.hidden=!incluirCbsIbsNoIcms;
+ if(incluirCbsIbsNoIcms){
+  const baseIcmsComCbs=baseSemIcmsNova+newTaxSale;
+  const fatorIcms=1-icmsRate;
+  const steps=[
+   ['1. Preço de operação usado na simulação',money(newPrice)],
+   ['2. Exclusão do ICMS da base da CBS/IBS',money(newPrice)+' × (1 − '+pct(icmsRate)+') = '+money(baseSemIcmsNova)],
+   ['3. Cálculo da CBS/IBS',money(baseSemIcmsNova)+' × '+pct(ivaEfetivo)+' = '+money(newTaxSale)],
+   ['4. Base do ICMS acrescida da CBS/IBS',money(baseSemIcmsNova)+' + '+money(newTaxSale)+' = '+money(baseIcmsComCbs)],
+   ['5. ICMS calculado por dentro',money(baseIcmsComCbs)+' ÷ '+fatorIcms.toLocaleString('pt-BR',{minimumFractionDigits:4,maximumFractionDigits:4})+' × '+pct(icmsRate)+' = '+money(newIcmsSale)],
+   ['6. Total da nota',money(baseSemIcmsNova)+' + '+money(newTaxSale)+' + '+money(newIcmsSale)+' = '+money(newInvoiceTotal)]
+  ];
+  el('passosCalculoCbsIbs').innerHTML=steps.map(([k,v])=>row(k,v)).join('')+
+   '<p class="note">A CBS/IBS é calculada sem o ICMS na sua base. O ICMS é recalculado por dentro após somar CBS/IBS à base líquida. As etapas usam as alíquotas efetivas configuradas na simulação.</p>';
+ }else{
+  el('passosCalculoCbsIbs').innerHTML='';
+ }
+ el('status').textContent='Simulação atualizada para '+cfg.aba+'. Modelo Novo utilizando '+(custoNovoModo==='semPis'?'custo sem PIS/COFINS da compra':'custo digitado')+'. CBS/IBS '+(incluirCbsIbsNoIcms?'incluídos':'não incluídos')+' na base do ICMS na venda. A margem de contribuição busca igualar a do Modelo Atual.';
 }
 el('situacao').addEventListener('change',renderFields);
 el('calc').addEventListener('click',calculate);
 el('reset').addEventListener('click',renderFields);
 el('custoNovoModo').addEventListener('change',calculate);
+el('cbsIbsBaseIcms').addEventListener('change',calculate);
 renderFields();
 </script></body></html>
