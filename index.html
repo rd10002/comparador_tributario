@@ -25,6 +25,9 @@ label{display:block;font-size:13px;font-weight:700;margin-bottom:6px}select,inpu
 .metric{display:flex;justify-content:space-between;gap:12px;padding:9px 0;border-bottom:1px solid #edf1f6}.metric:last-child{border:0}.metric span{color:var(--muted)}.metric strong{text-align:right;font-variant-numeric:tabular-nums}
 .highlight{background:#f0fdf8;border-radius:10px;padding:12px;margin:12px 0}.highlight span{display:block;color:var(--green);font-size:12px;font-weight:700}.highlight strong{font-size:25px;color:#06664a}
 .status,.note{font-size:12px;color:var(--muted);margin-top:12px}.tag{display:inline-block;background:#e8eefc;color:#23489f;border-radius:99px;padding:4px 9px;font-size:11px;font-weight:700;margin-left:8px}
+.tblwrap{overflow-x:auto}table{width:100%;border-collapse:collapse;font-size:12.5px}th,td{padding:8px 6px;border-bottom:1px solid var(--line);text-align:right;white-space:normal;vertical-align:middle}td:nth-child(n+5){white-space:nowrap}th{background:#f8fafc;font-size:12px;color:var(--muted)}th:nth-child(-n+4),td:nth-child(-n+4){text-align:left}.up{color:#b45309;font-weight:700}.down{color:var(--green);font-weight:700}
+.cenarios{display:grid;grid-template-columns:repeat(auto-fit,minmax(310px,1fr));gap:18px}.scn{display:flex;gap:6px;flex-wrap:wrap;padding:10px 18px 0}.scn .tag{margin:0}details{margin-top:12px}summary{cursor:pointer;font-weight:700;color:#23489f;font-size:13px}details .metric{font-size:12px}
+.tabs{display:flex;gap:8px;margin-bottom:18px;flex-wrap:wrap}.tab{background:#e8eefc;color:#23489f}.tab.active{background:var(--blue);color:#fff}
 @media(max-width:720px){.compare{grid-template-columns:1fr}.selector{grid-template-columns:1fr}.panel{padding:16px}}
 </style></head>
 <body>
@@ -39,14 +42,26 @@ label{display:block;font-size:13px;font-weight:700;margin-bottom:6px}select,inpu
 </section>
 <section class="panel">
 <h2>2. Campos editáveis <span class="tag" id="abaTag">Aba: Tributado</span></h2>
-<div class="inputs" style="margin-bottom:16px">
+<div class="inputs" id="campos"></div>
+<div class="actions"><button class="primary" id="calc">Atualizar simulação</button><button class="secondary" id="reset">Restaurar valores da aba</button></div>
+<div class="status" id="status" aria-live="polite">Os resultados são atualizados automaticamente ao alterar os campos.</div>
+</section>
+<div class="tabs" role="tablist">
+<button type="button" class="tab active" id="btnTabSel" role="tab" aria-selected="true">Com seletores</button>
+<button type="button" class="tab" id="btnTabTodas" role="tab" aria-selected="false">Todas as possibilidades</button>
+</div>
+
+<div id="tabSel">
+<section class="panel">
+<h2>3. Escolha o cenário do Modelo Novo</h2>
+<div class="inputs">
 <div class="field">
 <label for="custoNovoModo">Custo utilizado no Modelo Novo</label>
 <select id="custoNovoModo">
 <option value="digitado">Usar o custo digitado</option>
 <option value="semPis">Calcular custo sem PIS/COFINS da compra</option>
 </select>
-<small>Na segunda opção, o PIS/COFINS embutido no custo será retirado pela fórmula informada. O Modelo Atual continuará usando o custo original digitado.</small>
+<small>Na segunda opção, o PIS/COFINS embutido no custo será retirado. O Modelo Atual continuará usando o custo original digitado.</small>
 </div>
 <div class="field">
 <label for="cbsIbsBaseIcms">CBS/IBS compõe a base de cálculo do ICMS na venda?</label>
@@ -56,41 +71,61 @@ label{display:block;font-size:13px;font-weight:700;margin-bottom:6px}select,inpu
 </select>
 <small>“Sim” aplica o cálculo por dentro do ICMS sobre a base líquida acrescida da CBS/IBS. A CBS/IBS continua sendo calculada sem incluir o ICMS na sua própria base.</small>
 </div>
+<div class="field">
+<label for="metodoPrecoNovo">Como definir o preço de venda do Modelo Novo?</label>
+<select id="metodoPrecoNovo">
+<option value="margem">Manter a margem de contribuição do Modelo Atual</option>
+<option value="retirarPis">Retirar o PIS/COFINS embutido do preço atual</option>
+</select>
+<small>Na primeira opção, o preço é calculado para igualar o % de contribuição do modelo atual. Na segunda, o preço é o preço atual menos o PIS/COFINS embutido na venda, e a margem resultante é apenas informada.</small>
 </div>
-<div class="inputs" id="campos"></div>
-<div class="actions"><button class="primary" id="calc">Atualizar simulação</button><button class="secondary" id="reset">Restaurar valores da aba</button></div>
-<div class="status" id="status" aria-live="polite">Os resultados são atualizados automaticamente ao alterar os campos.</div>
+</div>
 </section>
 <section class="panel">
-<h2>3. Preço sugerido no modelo novo</h2>
-<div class="pricebox"><small>Preço calculado para preservar o percentual de contribuição do modelo atual</small><strong id="precoSugerido">—</strong><small id="margemAlvo">Margem de contribuição alvo: —</small></div>
+<h2>4. Preço sugerido no modelo novo</h2>
+<div class="pricebox"><small id="descPreco">—</small><strong id="precoSugerido">—</strong><small id="margemAlvo">—</small></div>
 <div class="delta-grid" aria-live="polite">
  <div class="delta-card neutral" id="cardVariacaoVenda"><small>Variação do preço de venda</small><strong id="variacaoVenda">—</strong><div class="detail" id="detalheVenda">Modelo novo comparado ao atual</div></div>
  <div class="delta-card neutral" id="cardVariacaoFinal"><small>Variação do preço final</small><strong id="variacaoFinal">—</strong><div class="detail" id="detalheFinal">Modelo novo comparado ao atual</div></div>
 </div>
+</section>
 <section class="panel" id="detalheCalculoCbsIbs">
-<h2>4. Memória de cálculo</h2>
-<p class="note" id="subtituloMemoria" hidden>Como foi calculada a base do ICMS com CBS/IBS</p>
+<h2>5. Memória de cálculo</h2>
 <p class="note">Demonstração dinâmica usando o preço sugerido, as alíquotas e a redução de ICMS informados acima.</p>
 <div class="rows" id="passosCalculoCbsIbs"></div>
 </section>
-<h2>5. Comparativo dos resultados</h2>
+<section class="panel">
+<h2>6. Comparativo dos resultados</h2>
 <div class="compare">
 <div class="model"><h3>Modelo Atual</h3><div class="rows" id="atual"></div></div>
 <div class="model new"><h3>Modelo Novo</h3><div class="rows" id="novo"></div></div>
 </div>
-<p class="note" id="notaBaseIcms">A opção de inclusão da CBS/IBS na base do ICMS afeta somente o Modelo Novo.</p>
-<p class="note">Direitos Exclusivos Rodrigo Egidio de Souza</p>
+<p class="note">As opções acima afetam somente o Modelo Novo.</p>
 </section>
+</div>
+
+<div id="tabTodas" hidden>
+<section class="panel">
+<h2>3. Resumo das possibilidades do Modelo Novo</h2>
+<p class="note" style="margin-top:0">O Modelo Novo é calculado em todas as combinações de: método de preço (manter a margem do atual ou retirar o PIS/COFINS embutido), custo (digitado ou sem PIS/COFINS da compra) e CBS/IBS na base do ICMS (sim ou não).</p>
+<div class="tblwrap" id="resumo"></div>
+</section>
+<section class="panel">
+<h2>4. Comparativo dos resultados</h2>
+<div class="cenarios" id="cenarios"></div>
+<p class="note">O Modelo Atual usa o custo digitado e o preço de venda informado. Cada cenário do Modelo Novo traz a sua memória de cálculo.</p>
+</section>
+</div>
+<p class="note">Direitos Exclusivos Rodrigo Egidio de Souza</p>
 </main>
 <script>
 const configs={
 tributado:{aba:'Tributado',desc:'Parâmetros e fórmulas correspondentes à aba Tributado .',fields:[
-['iva','% IVA',11.4],['reducaoIva','% Redução IVA',0],['icmsCompra','% ICMS na Compra',12],['icmsVenda','% ICMS na Venda',22],['pisCompra','% PIS/COFINS na Compra',9.25],['pisVenda','% PIS/COFINS na Venda',9.25],['reducao','% Redução ICMS',45.45],['fot','% FOT',18.18],['comissao','% Comissão',4],['precoVenda','Preço de Venda Atual (R$)',150,'money'],['custo','Preço de Custo (R$)',100,'money']]},
+['iva','% IVA',11.3],['reducaoIva','% Redução IVA',0],['icmsCompra','% ICMS na Compra',12],['icmsVenda','% ICMS na Venda',22],['pisCompra','% PIS/COFINS na Compra',9.25],['pisVenda','% PIS/COFINS na Venda',9.25],['reducao','% Redução ICMS',45.45],['fot','% FOT',18.18],['comissao','% Comissão',4],['precoVenda','Preço de Venda Atual (R$)',150,'money'],['custo','Preço de Custo (R$)',100,'money']]},
 isento:{aba:'Isento',desc:'Parâmetros da aba Isento. ',fields:[
-['iva','% IVA',11.4],['reducaoIva','% Redução IVA',0],['icmsCompra','% ICMS na Compra',0],['icmsVenda','% ICMS na Venda',0],['pisCompra','% PIS/COFINS na Compra',9.25],['pisVenda','% PIS/COFINS na Venda',9.25],['fot','% FOT',18.18],['comissao','% Comissão',2],['precoVenda','Preço de Venda Atual (R$)',150,'money'],['custo','Preço de Custo (R$)',100,'money']]},
+['iva','% IVA',11.3],['reducaoIva','% Redução IVA',0],['icmsCompra','% ICMS na Compra',0],['icmsVenda','% ICMS na Venda',0],['pisCompra','% PIS/COFINS na Compra',9.25],['pisVenda','% PIS/COFINS na Venda',9.25],['fot','% FOT',18.18],['comissao','% Comissão',2],['precoVenda','Preço de Venda Atual (R$)',150,'money'],['custo','Preço de Custo (R$)',100,'money']]},
 st:{aba:'Substituição Tributária',desc:'Parâmetros da aba Substituição Tributária, incluindo MVA e ICMS-ST.',fields:[
-['iva','% IVA',11.4],['reducaoIva','% Redução IVA',0],['icmsCompra','% ICMS na Compra',12],['icmsVenda','% ICMS na Venda',22],['pisCompra','% PIS/COFINS na Compra',9.25],['pisVenda','% PIS/COFINS na Venda',9.25],['reducao','% Redução ICMS',45.45],['fot','% FOT',18.18],['comissao','% Comissão',2],['mva','% MVA',30.59],['precoVenda','Preço de Venda Atual (R$)',140.91,'money'],['custo','Preço de Custo (R$)',100,'money']]}
+['iva','% IVA',11.3],['reducaoIva','% Redução IVA',0],['icmsCompra','% ICMS na Compra',12],['icmsVenda','% ICMS na Venda',22],['pisCompra','% PIS/COFINS na Compra',9.25],['pisVenda','% PIS/COFINS na Venda',9.25],['reducao','% Redução ICMS',45.45],['fot','% FOT',18.18],['comissao','% Comissão',2],['mva','% MVA',30.59],['precoVenda','Preço de Venda Atual (R$)',140.91,'money'],['custo','Preço de Custo (R$)',100,'money']]}
 };
 const el=id=>document.getElementById(id), current=()=>configs[el('situacao').value];
 const money=v=>new Intl.NumberFormat('pt-BR',{style:'currency',currency:'BRL'}).format(Number.isFinite(v)?v:0);
@@ -104,6 +139,60 @@ function renderFields(){
 }
 function row(label,value){return `<div class="metric"><span>${label}</span><strong>${value}</strong></div>`}
 function show(model,price,items){return `<div class="highlight"><span>${model==='novo'?'PREÇO DE VENDA SUGERIDO':'PREÇO DE VENDA'}</span><strong>${money(price)}</strong></div>`+items.map(([k,v])=>row(k,typeof v==='string'?v:money(v))).join('')}
+function calcNovo(c,custoModo,incluirIcms,metodo){
+ const {ivaEfetivo,ic,pc,icmsRate,com,fot,sale,cost,st,exempt,iv,mva,target,fotSobreVendaAtual,pisSale}=c;
+ const costBaseNew=custoModo==='semPis'?cost-((cost-(cost*ic))*pc):cost;
+ const icmsBuyNew=costBaseNew*ic;
+ const costWithIva=costBaseNew+((costBaseNew-icmsBuyNew)*ivaEfetivo);
+ const costCapNew=costWithIva-icmsBuyNew-((costBaseNew-icmsBuyNew)*ivaEfetivo);
+ // Margem do Modelo Novo = Preço - custo capado - comissão - ICMS - FOT - IVA.
+ // ICMS = P × alíquota (Não) ou P × alíquota × (1 + IVA) (Sim, por dentro).
+ // IVA = P × (1 − alíquota ICMS) × IVA efetivo. O Modelo Novo não desconta PIS/COFINS sobre a venda.
+ const icmsRatioNew=incluirIcms?icmsRate*(1+ivaEfetivo):icmsRate;
+ const ivaRatioNew=(1-icmsRate)*ivaEfetivo;
+ const denominator=1-icmsRatioNew-ivaRatioNew-com-fotSobreVendaAtual-target;
+ const retirarPis=metodo==='retirarPis';
+ if(!retirarPis&&denominator<=0)return {erro:true};
+ const newPrice=retirarPis?(sale-pisSale):costCapNew/denominator;
+ const newCommission=newPrice*com;
+ const baseSemIcmsNova=newPrice*(1-icmsRate);
+ const newTaxSale=baseSemIcmsNova*ivaEfetivo;
+ const baseIcmsFinal=(baseSemIcmsNova+newTaxSale)/(1-icmsRate);
+ const newIcmsSale=incluirIcms?baseIcmsFinal*icmsRate:newPrice*icmsRate;
+ let newFot,newST=0;
+ if(st){
+  newST=(newPrice*(1+mva))*icmsRate-newIcmsSale;
+  newFot=(((newPrice*(1-icmsRate)/(1-iv)-newPrice)+(newPrice*(1+mva)*(1-icmsRate)/(1-iv)-(newPrice*(1+mva))))*fot);
+ }else{
+  newFot=exempt?((newPrice/(1-.22))*.22)*fot:((newPrice*(1-icmsRate)/(1-iv)-newPrice)*fot);
+ }
+ const newContribution=newPrice-costCapNew-newCommission-newIcmsSale-newFot-newTaxSale;
+ const newContributionPct=newContribution/newPrice;
+ const newMarkup=newPrice/costWithIva-1,newMargin=(newPrice-costWithIva)/newPrice;
+ const newFinalPrice=newPrice+newTaxSale+(st?newST:0);
+ const items=[
+  ['Preço de custo com IVA',costWithIva],['Preço de custo capado',costCapNew],['Comissão',newCommission],['ICMS na venda',newIcmsSale],['ICMS na compra',icmsBuyNew],
+  ['IVA na venda',newTaxSale],...(st?[['ICMS-ST',newST]]:[]),['FOT',newFot],['Markup',pct(newMarkup)],['Margem',pct(newMargin)],['Margem de contribuição',newContribution],['% de contribuição',pct(newContributionPct)],[st?'Preço final (+ ST + IVA)':'Preço final (com IVA)',newFinalPrice]
+ ];
+ const fatorIcms=1-icmsRate;
+ const steps=[
+  ['1. Preço de operação',money(newPrice)],
+  ['2. Exclusão do ICMS da base do IVA',money(newPrice)+' × (1 − '+pct(icmsRate)+') = '+money(baseSemIcmsNova)],
+  ['3. Cálculo do IVA',money(baseSemIcmsNova)+' × '+pct(ivaEfetivo)+' = '+money(newTaxSale)]
+ ];
+ if(incluirIcms){
+  steps.push(['4. Base do ICMS acrescida do IVA','('+money(baseSemIcmsNova)+' + '+money(newTaxSale)+') ÷ '+fatorIcms.toLocaleString('pt-BR',{minimumFractionDigits:4,maximumFractionDigits:4})+' = '+money(baseIcmsFinal)]);
+  steps.push(['5. ICMS calculado',money(baseIcmsFinal)+' × '+pct(icmsRate)+' = '+money(newIcmsSale)]);
+ }else{
+  steps.push(['4. ICMS sobre o preço de operação',money(newPrice)+' × '+pct(icmsRate)+' = '+money(newIcmsSale)]);
+ }
+ steps.push([(steps.length+1)+'. Margem de contribuição',money(newPrice)+' − '+money(costCapNew)+' − '+money(newCommission)+' − '+money(newIcmsSale)+' − '+money(newFot)+' − '+money(newTaxSale)+' = '+money(newContribution)]);
+ return {newPrice,newFinalPrice,newContributionPct,items,steps};
+}
+function variacao(n,o){
+ const v=n/o-1,cls=v>0.0000001?'up':v<-0.0000001?'down':'';
+ return `<span class="${cls}">${v>0?'+':''}${pct(v)}</span>`;
+}
 function calculate(){
  const cfg=current(), iva=rate('iva'), reducaoIva=rate('reducaoIva'), ivaEfetivo=iva*(1-reducaoIva), ic=rate('icmsCompra'), iv=rate('icmsVenda'), pc=rate('pisCompra'), pv=rate('pisVenda'), red=(el('situacao').value==='isento'?0:rate('reducao')), fot=rate('fot'), com=rate('comissao'), sale=val('precoVenda'), cost=val('custo'), st=el('situacao').value==='st', exempt=el('situacao').value==='isento';
  if(!Number.isFinite(sale)||!Number.isFinite(cost)||sale<=0||cost<=0){el('status').textContent='Informe preço de venda e custo maiores que zero.';return}
@@ -124,109 +213,77 @@ function calculate(){
   markup=sale/cost-1;margin=(sale-cost)/sale;
   contribution=sale-costCap-icmsSale-fotValue-pisSale-commission;contributionPct=contribution/sale;finalPrice=sale+stValue;
  }
- const custoNovoModo=el('custoNovoModo').value;
- const incluirCbsIbsNoIcms=el('cbsIbsBaseIcms').value==='sim';
- const costBaseNew=custoNovoModo==='semPis'
-  ? cost-((cost-(cost*ic))*pc)
-  : cost;
- const icmsBuyNew=costBaseNew*ic;
- const costWithIva=costBaseNew+((costBaseNew-icmsBuyNew)*ivaEfetivo);
- const costCapNew=costWithIva-icmsBuyNew-((costBaseNew-icmsBuyNew)*ivaEfetivo);
- const target=contributionPct;
- const fotSobreVendaAtual=fotValue/sale;
- // "Não": preserva a fórmula original.
- // "Sim": CBS/IBS incide sobre a base sem ICMS; depois o ICMS é recalculado
- // por dentro sobre a base líquida acrescida de CBS/IBS.
- // O Modelo Novo não desconta PIS/COFINS sobre a venda.
- // O IVA é destacado como tributo do novo modelo; sua parcela é compensada
- // no total da operação e não deve reduzir novamente a margem-alvo.
- // A mesma lógica de preservação da margem vale para as opções Sim e Não.
- // Margem do Modelo Novo = Preço - custo capado - comissão - ICMS - FOT - IVA.
- // Todos os itens são proporcionais ao preço, exceto o custo capado:
- //   ICMS = P × alíquota (Não) ou P × alíquota × (1 + IVA) (Sim, por dentro)
- //   IVA  = P × (1 − alíquota ICMS) × IVA efetivo
- const icmsRatioNew=incluirCbsIbsNoIcms ? icmsRate*(1+ivaEfetivo) : icmsRate;
- const ivaRatioNew=(1-icmsRate)*ivaEfetivo;
- const denominator=1-icmsRatioNew-ivaRatioNew-com-fotSobreVendaAtual-target;
- if(denominator<=0){el('status').textContent='Não foi possível calcular o preço sugerido. Verifique alíquotas e margem.';return}
- const newPrice=costCapNew/denominator;
- const newCommission=newPrice*com;
- const baseSemIcmsNova=newPrice*(1-icmsRate);
- const newTaxSale=baseSemIcmsNova*ivaEfetivo;
- const newIcmsSale=incluirCbsIbsNoIcms
-  ? ((baseSemIcmsNova+newTaxSale)/(1-icmsRate))*icmsRate
-  : newPrice*icmsRate;
- const newInvoiceTotal=incluirCbsIbsNoIcms
-  ? baseSemIcmsNova+newTaxSale+newIcmsSale
-  : newPrice+newTaxSale;
- let newFot,newST=0;
- if(st){
-  const mva=rate('mva');
-  newST=(newPrice*(1+mva))*icmsRate-newIcmsSale;
-  newFot=(((newPrice*(1-icmsRate)/(1-iv)-newPrice)+(newPrice*(1+mva)*(1-icmsRate)/(1-iv)-(newPrice*(1+mva))))*fot);
- }else{
-  newFot=exempt?((newPrice/(1-.22))*.22)*fot:((newPrice*(1-icmsRate)/(1-iv)-newPrice)*fot);
- }
- const newContribution=newPrice-costCapNew-newCommission-newIcmsSale-newFot-newTaxSale;
- const newContributionPct=newContribution/newPrice;
- const newMarkup=newPrice/costWithIva-1,newMargin=(newPrice-costWithIva)/newPrice;
- // Preço final único: usado tanto na lista do Modelo Novo quanto no card de variação.
- const newFinalPrice=newPrice+newTaxSale+(st?newST:0);
  const currentItems=[
   ['Preço de custo',cost],['Preço de custo capado',costCap],['Comissão',commission],['ICMS na venda',icmsSale],['ICMS na compra',icmsBuy],
-  [st?'PIS/COFINS na venda':'PIS/COFINS na venda',pisSale],
+  ['PIS/COFINS na venda',pisSale],
   ...(st?[['ICMS-ST',stValue]]:[]),['FOT',fotValue],['Markup',pct(markup)],['Margem',pct(margin)],['Margem de contribuição',contribution],['% de contribuição',pct(contributionPct)],[st?'Preço final (+ ST)':'Preço final',finalPrice]
  ];
- const newItems=[
-  ['Preço de custo com IVA',costWithIva],['Preço de custo capado',costCapNew],['Comissão',newCommission],['ICMS na venda',newIcmsSale],['ICMS na compra',icmsBuyNew],
-  [st?'IVA na venda':'IVA na venda',newTaxSale],...(st?[['ICMS-ST',newST]]:[]),['FOT',newFot],['Markup',pct(newMarkup)],['Margem',pct(newMargin)],['Margem de contribuição',newContribution],['% de contribuição',pct(newContributionPct)],[st?'Preço final (+ ST + IVA)':'Preço final (com IVA)',newFinalPrice]
- ];
- const currentFinalPrice=finalPrice;
- function updateDelta(cardId,valueId,detailId,newValue,oldValue){
-  const variation=newValue/oldValue-1, card=el(cardId);
-  const kind=variation>0.0000001?'increase':variation< -0.0000001?'decrease':'neutral';
-  card.className='delta-card '+kind;
-  const label=kind==='increase'?'Aumento':kind==='decrease'?'Redução':'Sem alteração';
-  el(valueId).textContent=(variation>0?'+':'')+pct(variation)+' · '+label;
-  el(detailId).textContent='Atual: '+money(oldValue)+' | Novo: '+money(newValue);
- }
- el('precoSugerido').textContent=money(newPrice);el('margemAlvo').textContent='Margem de contribuição alvo: '+pct(target);
- updateDelta('cardVariacaoVenda','variacaoVenda','detalheVenda',newPrice,sale);
- updateDelta('cardVariacaoFinal','variacaoFinal','detalheFinal',newFinalPrice,currentFinalPrice);
- el('atual').innerHTML=show('atual',sale,currentItems);el('novo').innerHTML=show('novo',newPrice,newItems);
- const detalhe=el('detalheCalculoCbsIbs');
- detalhe.hidden=false;
- el('subtituloMemoria').hidden=!incluirCbsIbsNoIcms;
- const fatorIcms=1-icmsRate;
- let steps;
- if(incluirCbsIbsNoIcms){
-  const baseIcmsComCbs=baseSemIcmsNova+newTaxSale;
-  const baseIcmsFinal=baseIcmsComCbs/fatorIcms;
-  steps=[
-   ['1. Preço de operação usado na simulação',money(newPrice)],
-   ['2. Exclusão do ICMS da base do IVA',money(newPrice)+' × (1 − '+pct(icmsRate)+') = '+money(baseSemIcmsNova)],
-   ['3. Cálculo do IVA',money(baseSemIcmsNova)+' × '+pct(ivaEfetivo)+' = '+money(newTaxSale)],
-   ['4. Base do ICMS acrescida do IVA','('+money(baseSemIcmsNova)+' + '+money(newTaxSale)+') ÷ '+fatorIcms.toLocaleString('pt-BR',{minimumFractionDigits:4,maximumFractionDigits:4})+' = '+money(baseIcmsFinal)],
-   ['5. ICMS calculado',money(baseIcmsFinal)+' × '+pct(icmsRate)+' = '+money(newIcmsSale)]
-  ];
-  el('passosCalculoCbsIbs').innerHTML=steps.map(([k,v])=>row(k,v)).join('')+
-   '<p class="note">O IVA é calculado sem o ICMS na sua base. O ICMS é recalculado por dentro após somar o IVA à base líquida. As etapas usam as alíquotas efetivas configuradas na simulação.</p>';
+ const ctx={ivaEfetivo,ic,pc,icmsRate,com,fot,sale,cost,st,exempt,iv,mva:st?rate('mva'):0,target:contributionPct,fotSobreVendaAtual:fotValue/sale,pisSale};
+ const metodos=[['margem','Margem de Contribuição igual a do Modelo atual'],['retirarPis','Preço atual sem PIS/COFINS da Venda']];
+ const custos=[['digitado','Custo digitado'],['semPis','Custo sem PIS/COFINS da compra']];
+ const bases=[[false,'CBS/IBS fora da base do ICMS'],[true,'CBS/IBS na base do ICMS']];
+ const cenarios=[];
+ metodos.forEach(([m,ml])=>custos.forEach(([cm,cl])=>bases.forEach(([b,bl])=>{
+  cenarios.push({ml,cl,bl,r:calcNovo(ctx,cm,b,m)});
+ })));
+ // Resumo
+ let linhas=`<tr><td><strong>Modelo Atual</strong></td><td>—</td><td>Custo digitado</td><td>—</td><td>${money(sale)}</td><td>—</td><td>${money(finalPrice)}</td><td>—</td><td>${pct(contributionPct)}</td></tr>`;
+ cenarios.forEach((s,i)=>{
+  if(s.r.erro){linhas+=`<tr><td>Cenário ${i+1}</td><td>${s.ml}</td><td>${s.cl}</td><td>${s.bl}</td><td colspan="5">Não foi possível calcular (verifique alíquotas e margem)</td></tr>`;return}
+  linhas+=`<tr><td>Cenário ${i+1}</td><td>${s.ml}</td><td>${s.cl}</td><td>${s.bl}</td><td>${money(s.r.newPrice)}</td><td>${variacao(s.r.newPrice,sale)}</td><td>${money(s.r.newFinalPrice)}</td><td>${variacao(s.r.newFinalPrice,finalPrice)}</td><td>${pct(s.r.newContributionPct)}</td></tr>`;
+ });
+ el('resumo').innerHTML=`<table><thead><tr><th>Modelo</th><th>Método de preço</th><th>Custo</th><th>Base do ICMS</th><th>Preço de venda</th><th>Var. venda</th><th>Preço final</th><th>Var. final</th><th>% contribuição</th></tr></thead><tbody>${linhas}</tbody></table>`;
+ // Comparativo detalhado
+ let html=`<div class="model"><h3>Modelo Atual</h3><div class="rows">${show('atual',sale,currentItems)}</div></div>`;
+ cenarios.forEach((s,i)=>{
+  const tags=`<div class="scn"><span class="tag">${s.ml}</span><span class="tag">${s.cl}</span><span class="tag">${s.bl}</span></div>`;
+  if(s.r.erro){html+=`<div class="model new"><h3>Modelo Novo — Cenário ${i+1}</h3>${tags}<div class="rows"><p class="note">Não foi possível calcular o preço sugerido. Verifique alíquotas e margem.</p></div></div>`;return}
+  html+=`<div class="model new"><h3>Modelo Novo — Cenário ${i+1}</h3>${tags}<div class="rows">${show('novo',s.r.newPrice,s.r.items)}<div class="metric"><span>Variação do preço de venda</span><strong>${variacao(s.r.newPrice,sale)}</strong></div><div class="metric"><span>Variação do preço final</span><strong>${variacao(s.r.newFinalPrice,finalPrice)}</strong></div><details><summary>Memória de cálculo</summary>${s.r.steps.map(([k,v])=>row(k,v)).join('')}</details></div></div>`;
+ });
+ el('cenarios').innerHTML=html;
+ // Aba "Com seletores": cenário escolhido
+ const sel=calcNovo(ctx,el('custoNovoModo').value,el('cbsIbsBaseIcms').value==='sim',el('metodoPrecoNovo').value);
+ el('atual').innerHTML=show('atual',sale,currentItems);
+ if(sel.erro){
+  el('precoSugerido').textContent='—';
+  el('descPreco').textContent='Não foi possível calcular o preço sugerido. Verifique alíquotas e margem.';
+  el('margemAlvo').textContent='Margem de contribuição alvo: '+pct(contributionPct);
+  el('novo').innerHTML='';el('passosCalculoCbsIbs').innerHTML='';
  }else{
-  steps=[
-   ['1. Preço de operação usado na simulação',money(newPrice)],
-   ['2. Exclusão do ICMS da base do IVA',money(newPrice)+' × (1 − '+pct(icmsRate)+') = '+money(baseSemIcmsNova)],
-   ['3. Cálculo do IVA',money(baseSemIcmsNova)+' × '+pct(ivaEfetivo)+' = '+money(newTaxSale)],
-   ['4. ICMS calculado sobre o preço de operação',money(newPrice)+' × '+pct(icmsRate)+' = '+money(newIcmsSale)]
-  ];
-  el('passosCalculoCbsIbs').innerHTML=steps.map(([k,v])=>row(k,v)).join('')+
-   '<p class="note">Nesta opção, o ICMS é calculado diretamente sobre o preço de operação. O IVA é calculado separadamente, sem inclusão na base do ICMS.</p>';
+  const retirarPis=el('metodoPrecoNovo').value==='retirarPis';
+  el('precoSugerido').textContent=money(sel.newPrice);
+  if(retirarPis){
+   el('descPreco').textContent='Preço atual ('+money(sale)+') menos o PIS/COFINS embutido na venda ('+money(pisSale)+')';
+   el('margemAlvo').textContent='Margem de contribuição resultante: '+pct(sel.newContributionPct)+' (modelo atual: '+pct(contributionPct)+')';
+  }else{
+   el('descPreco').textContent='Preço calculado para preservar o percentual de contribuição do modelo atual';
+   el('margemAlvo').textContent='Margem de contribuição alvo: '+pct(contributionPct);
+  }
+  const updateDelta=(cardId,valueId,detailId,newValue,oldValue)=>{
+   const v=newValue/oldValue-1,card=el(cardId);
+   const kind=v>0.0000001?'increase':v<-0.0000001?'decrease':'neutral';
+   card.className='delta-card '+kind;
+   el(valueId).textContent=(v>0?'+':'')+pct(v)+' · '+(kind==='increase'?'Aumento':kind==='decrease'?'Redução':'Sem alteração');
+   el(detailId).textContent='Atual: '+money(oldValue)+' | Novo: '+money(newValue);
+  };
+  updateDelta('cardVariacaoVenda','variacaoVenda','detalheVenda',sel.newPrice,sale);
+  updateDelta('cardVariacaoFinal','variacaoFinal','detalheFinal',sel.newFinalPrice,finalPrice);
+  el('novo').innerHTML=show('novo',sel.newPrice,sel.items);
+  el('passosCalculoCbsIbs').innerHTML=sel.steps.map(([k,v])=>row(k,v)).join('');
  }
- el('status').textContent='Simulação atualizada para '+cfg.aba+'. Modelo Novo utilizando '+(custoNovoModo==='semPis'?'custo sem PIS/COFINS da compra':'custo digitado')+'. IVA '+(incluirCbsIbsNoIcms?'incluído':'não incluído')+' na base do ICMS na venda. O Modelo Novo não desconta PIS/COFINS sobre a venda. A margem de contribuição busca igualar a do Modelo Atual.';
+ el('status').textContent='Simulação atualizada para '+cfg.aba+'. Cenário selecionado e os 8 cenários do Modelo Novo calculados.';
 }
+function setTab(t){
+ const sel=t==='sel';
+ el('tabSel').hidden=!sel;el('tabTodas').hidden=sel;
+ el('btnTabSel').classList.toggle('active',sel);el('btnTabTodas').classList.toggle('active',!sel);
+ el('btnTabSel').setAttribute('aria-selected',sel);el('btnTabTodas').setAttribute('aria-selected',!sel);
+}
+el('btnTabSel').addEventListener('click',()=>setTab('sel'));
+el('btnTabTodas').addEventListener('click',()=>setTab('todas'));
+['custoNovoModo','cbsIbsBaseIcms','metodoPrecoNovo'].forEach(id=>el(id).addEventListener('change',calculate));
 el('situacao').addEventListener('change',renderFields);
 el('calc').addEventListener('click',calculate);
 el('reset').addEventListener('click',renderFields);
-el('custoNovoModo').addEventListener('change',calculate);
-el('cbsIbsBaseIcms').addEventListener('change',calculate);
 renderFields();
 </script></body></html>
