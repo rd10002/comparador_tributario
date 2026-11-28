@@ -77,7 +77,7 @@ label{display:block;font-size:13px;font-weight:700;margin-bottom:6px}select,inpu
 <small>Na segunda opção, o PIS/COFINS embutido no custo será retirado. O Modelo Atual continuará usando o custo original digitado.</small>
 </div>
 <div class="field">
-<label for="cbsIbsBaseIcms">CBS/IBS compõe a base de cálculo do ICMS?</label>
+<label for="cbsIbsBaseIcms">CBS/IBS compõe a base de cálculo do ICMS na venda?</label>
 <select id="cbsIbsBaseIcms">
 <option value="nao">Não — ICMS sobre o preço sem a CBS/IBS</option>
 <option value="sim">Sim — incluir CBS/IBS na base do ICMS</option>
@@ -213,9 +213,8 @@ function calcNovo(c,custoModo,incluirIcms,metodo,ivaModo){
  const L=t=>(++nPasso)+'. '+t;
  steps.push(['#5.1 Compra','']);
  const fAj=(1-ic).toLocaleString('pt-BR',{minimumFractionDigits:4,maximumFractionDigits:4});
- if(incluirIcms)steps.push([L('Base do ICMS por dentro (custo sem IVA ÷ (1 + IVA × ICMS))'),money(costBaseNew)+' ÷ (1 + '+pct(ivaEfetivo)+' × '+pct(ic)+') = '+money(pbCompra)]);
- steps.push([L('Base do IVA (exclui o ICMS)'),money(pbCompra)+' × (1 − '+pct(ic)+') = '+money(baseIvaCompra)]);
- steps.push([L('IVA (crédito)'),money(baseIvaCompra)+' × '+pct(ivaEfetivo)+' = '+money(ivaCompra)]);
+ steps.push([L('Base do IVA (exclui o ICMS)'),money(costBaseNew)+' × (1 − '+pct(ic)+')'+(incluirIcms?' ÷ (1 + '+pct(ivaEfetivo)+' × '+pct(ic)+')':'')+' = '+money(baseIvaCompra)]);
+ steps.push([L('IVA'),money(baseIvaCompra)+' × '+pct(ivaEfetivo)+' = '+money(ivaCompra)]);
  if(!incluirIcms)steps.push([L('Custo com IVA (custo + IVA)'),money(costBaseNew)+' + '+money(ivaCompra)+' = '+money(costWithIva)]);
  if(incluirIcms)steps.push([L('Base do ICMS acrescida do IVA'),'('+money(baseIvaCompra)+' + '+money(ivaCompra)+') ÷ '+fAj+' = '+money(costWithIva)]);
  steps.push([L(incluirIcms?'ICMS por dentro':'ICMS sobre o custo'),money(incluirIcms?costWithIva:costBaseNew)+' × '+pct(ic)+' = '+money(icmsBuyNew)]);
@@ -223,9 +222,8 @@ function calcNovo(c,custoModo,incluirIcms,metodo,ivaModo){
  nPasso=0;steps.push(['#5.2 Venda','']);
  if(fora){
   steps.push([L('Preço de venda sugerido (sem IVA)'),money(newPrice)]);
-  if(incluirIcms)steps.push([L('Base do ICMS por dentro (sem o ICMS sobre o IVA)'),money(newPrice)+' ÷ (1 + '+pct(ivaEfetivo)+' × '+pct(icmsRate)+') = '+money(pb)]);
-  steps.push([L('Base do IVA (exclui o ICMS)'),money(pb)+' × (1 − '+pct(icmsRate)+') = '+money(baseIva)]);
-  steps.push([L('IVA (CBS+IBS)'),money(baseIva)+' × '+pct(ivaEfetivo)+' = '+money(newTaxSale)]);
+  steps.push([L('Base do IVA (exclui o ICMS)'),money(newPrice)+' × (1 − '+pct(icmsRate)+')'+(incluirIcms?' ÷ (1 + '+pct(ivaEfetivo)+' × '+pct(icmsRate)+')':'')+' = '+money(baseIva)]);
+  steps.push([L('IVA'),money(baseIva)+' × '+pct(ivaEfetivo)+' = '+money(newTaxSale)]);
   if(incluirIcms){
    steps.push([L('Base do ICMS acrescida do IVA'),'('+money(baseIva)+' + '+money(newTaxSale)+') ÷ '+(1-icmsRate).toLocaleString('pt-BR',{minimumFractionDigits:4,maximumFractionDigits:4})+' = '+money(baseIcms)]);
    steps.push([L('ICMS por dentro'),money(baseIcms)+' × '+pct(icmsRate)+' = '+money(newIcmsSale)]);
@@ -238,12 +236,12 @@ function calcNovo(c,custoModo,incluirIcms,metodo,ivaModo){
  }else{
   steps.push([L('Preço de venda (ICMS e IVA embutidos)'),money(newPrice)]);
   if(incluirIcms){
-   steps.push([L('ICMS por dentro (base inclui o IVA)'),money(newPrice)+' × '+pct(icmsRate)+' = '+money(newIcmsSale)]);
-   steps.push([L('Base do IVA (líquido)'),money(newPrice)+' × (1 − '+pct(icmsRate)+') ÷ (1 + '+pct(ivaEfetivo)+') = '+money(baseIva)]);
-   steps.push([L('IVA (CBS+IBS)'),money(baseIva)+' × '+pct(ivaEfetivo)+' = '+money(newTaxSale)]);
+   steps.push([L('ICMS por dentro'),money(newPrice)+' × '+pct(icmsRate)+' = '+money(newIcmsSale)]);
+   steps.push([L('Base do IVA (exclui o ICMS)'),money(newPrice)+' × (1 − '+pct(icmsRate)+') ÷ (1 + '+pct(ivaEfetivo)+') = '+money(baseIva)]);
+   steps.push([L('IVA'),money(baseIva)+' × '+pct(ivaEfetivo)+' = '+money(newTaxSale)]);
   }else{
-   steps.push([L('Base do IVA (líquido)'),money(newPrice)+' × (1 − '+pct(icmsRate)+') ÷ (1 + '+pct(ivaEfetivo)+' × (1 − '+pct(icmsRate)+')) = '+money(baseIva)]);
-   steps.push([L('IVA (CBS+IBS)'),money(baseIva)+' × '+pct(ivaEfetivo)+' = '+money(newTaxSale)]);
+   steps.push([L('Base do IVA (exclui o ICMS)'),money(newPrice)+' × (1 − '+pct(icmsRate)+') ÷ (1 + '+pct(ivaEfetivo)+' × (1 − '+pct(icmsRate)+')) = '+money(baseIva)]);
+   steps.push([L('IVA'),money(baseIva)+' × '+pct(ivaEfetivo)+' = '+money(newTaxSale)]);
    steps.push([L('ICMS sobre o preço sem o IVA'),'('+money(newPrice)+' − '+money(newTaxSale)+') × '+pct(icmsRate)+' = '+money(newIcmsSale)]);
   }
   steps.push([L('Prova: líquido + IVA + ICMS = preço de venda'),money(baseIva)+' + '+money(newTaxSale)+' + '+money(newIcmsSale)+' = '+money(baseIva+newTaxSale+newIcmsSale)]);
